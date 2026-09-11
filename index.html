@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="tm7MiYe8gjHaDsHfR29jDg">
+<head data-page-node-id="hp8UOKeEMG5Tj3nOsGCguz">
+<meta charset="UTF-8" data-page-node-id="JS4i2FGBHeLTMvhKAzSmgu" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="tmk6go25VXDakqPW75IS15" />
+<title>待办清单 · Taro Todo</title>
+<style>
+  :root {
+    --taro-1: #f3ecfd;
+    --taro-2: #dcc9f4;
+    --taro-3: #bda3e6;
+    --taro-4: #9b7ad4;
+    --taro-5: #7a58bd;
+    --ink: #3a2d52;
+    --ink-soft: #8a7ba3;
+    --card: #ffffff;
+    --line: #efe8fa;
+    --danger: #e0729a;
+    --radius: 18px;
+    --shadow: 0 18px 40px -18px rgba(86, 58, 140, .45);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    padding: 32px 16px 56px;
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+    color: var(--ink);
+    background: linear-gradient(160deg, var(--taro-1) 0%, var(--taro-2) 42%, var(--taro-3) 100%);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    max-width: 560px;
+    margin: 0 auto;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  /* ---------- 顶部 ---------- */
+  .app-header {
+    padding: 26px 24px 20px;
+    background: linear-gradient(135deg, var(--taro-4), var(--taro-5));
+    color: #fff;
+  }
+
+  .app-header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .counter {
+    margin: 10px 0 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, .92);
+  }
+
+  .counter strong {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 3px;
+  }
+
+  .progress {
+    margin-top: 14px;
+    height: 6px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, .28);
+    overflow: hidden;
+  }
+
+  .bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 99px;
+    background: #fff;
+    transition: width .35s ease;
+  }
+
+  /* ---------- 输入区 ---------- */
+  .composer {
+    display: flex;
+    gap: 10px;
+    padding: 20px 24px 4px;
+  }
+
+  .composer input {
+    flex: 1;
+    min-width: 0;
+    height: 46px;
+    padding: 0 16px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--ink);
+    background: #faf8fe;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+  }
+
+  .composer input::placeholder { color: #b6aac9; }
+
+  .composer input:focus {
+    background: #fff;
+    border-color: var(--taro-3);
+    box-shadow: 0 0 0 4px rgba(157, 122, 212, .14);
+  }
+
+  .composer.shake input { animation: shake .36s ease; }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  .btn-add {
+    flex: 0 0 auto;
+    height: 46px;
+    padding: 0 22px;
+    font-size: 15px;
+    font-family: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, var(--taro-4), var(--taro-5));
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .2s, opacity .2s;
+  }
+
+  .btn-add:hover { transform: translateY(-1px); box-shadow: 0 8px 18px -8px var(--taro-5); }
+  .btn-add:active { transform: translateY(0) scale(.98); }
+
+  /* ---------- 筛选 ---------- */
+  .filters {
+    display: flex;
+    gap: 8px;
+    padding: 16px 24px 8px;
+  }
+
+  .filters button {
+    flex: 1;
+    height: 36px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink-soft);
+    background: #f6f2fd;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+
+  .filters button:hover { color: var(--taro-5); background: #efe8fa; }
+
+  .filters button.active {
+    color: #fff;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--taro-4), var(--taro-5));
+    box-shadow: 0 8px 16px -10px var(--taro-5);
+  }
+
+  /* ---------- 列表 ---------- */
+  .list {
+    list-style: none;
+    margin: 0;
+    padding: 8px 16px 4px;
+    max-height: 46vh;
+    overflow-y: auto;
+  }
+
+  .list::-webkit-scrollbar { width: 6px; }
+  .list::-webkit-scrollbar-thumb { background: #e3daf5; border-radius: 99px; }
+
+  .item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 10px 12px 8px;
+    border-radius: 12px;
+    animation: slideIn .28s ease both;
+    transition: background .18s;
+  }
+
+  .item:hover { background: #faf7fe; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .item.leaving {
+    animation: slideOut .22s ease forwards;
+  }
+
+  @keyframes slideOut {
+    to { opacity: 0; transform: translateX(24px); height: 0; padding: 0; margin: 0; }
+  }
+
+  /* 勾选框 */
+  .check {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    margin-top: 1px;
+    border: 2px solid var(--taro-3);
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background .2s, border-color .2s, transform .15s;
+  }
+
+  .check:hover { transform: scale(1.08); border-color: var(--taro-5); }
+
+  .check svg {
+    width: 12px;
+    height: 12px;
+    stroke: #fff;
+    stroke-width: 3.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    stroke-dasharray: 20;
+    stroke-dashoffset: 20;
+    transition: stroke-dashoffset .25s ease .05s;
+  }
+
+  .item.done .check {
+    background: linear-gradient(135deg, var(--taro-4), var(--taro-5));
+    border-color: transparent;
+  }
+
+  .item.done .check svg { stroke-dashoffset: 0; }
+
+  /* 文本 */
+  .body { flex: 1; min-width: 0; }
+
+  .text {
+    font-size: 15px;
+    line-height: 1.45;
+    word-break: break-word;
+    transition: color .2s;
+  }
+
+  .item.done .text {
+    color: #b3a8c6;
+    text-decoration: line-through;
+    text-decoration-color: rgba(155, 122, 212, .55);
+  }
+
+  .time {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #b6aac9;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .time svg { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+
+  /* 删除 */
+  .btn-del {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    margin-top: 0;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--ink-soft);
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .18s, background .18s, color .18s, transform .15s;
+  }
+
+  .item:hover .btn-del { opacity: 1; }
+  .btn-del:hover { color: #fff; background: var(--danger); transform: rotate(90deg); }
+
+  @media (hover: none) {
+    .btn-del { opacity: .45; }
+  }
+
+  /* 空状态 */
+  .empty {
+    padding: 34px 24px 38px;
+    text-align: center;
+    color: #b6aac9;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .empty .emoji { font-size: 30px; display: block; margin-bottom: 8px; }
+
+  .hidden { display: none !important; }
+
+  /* ---------- 底部 ---------- */
+  .app-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 24px 20px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+
+  .btn-clear {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--taro-5);
+    background: #f6f2fd;
+    border: 1px solid #e8dffa;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+
+  .btn-clear:hover:not(:disabled) { background: var(--taro-5); color: #fff; border-color: transparent; }
+  .btn-clear:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ---------- 庆祝 ---------- */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 40px;
+    transform: translate(-50%, 24px);
+    padding: 13px 26px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, var(--taro-4), var(--taro-5));
+    border-radius: 99px;
+    box-shadow: 0 16px 34px -14px rgba(86, 58, 140, .7);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s, transform .3s;
+    z-index: 50;
+  }
+
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  .confetti-layer {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 40;
+  }
+
+  .confetti-piece {
+    position: absolute;
+    top: -40px;
+    font-size: 18px;
+    animation: fall linear forwards;
+  }
+
+  @keyframes fall {
+    to { transform: translateY(105vh) rotate(560deg); opacity: 0; }
+  }
+</style>
+</head>
+<body data-page-node-id="DBJDIZUySM4d7A9pK10dg3">
+
+  <main class="app" data-page-node-id="IaCKmQdpZ19FMdkBpuFGek">
+    <header class="app-header" data-page-node-id="26E7K9LlViL9Pt1lV4HSq3">
+      <h1 data-page-node-id="vKmBqRDwCrTCTTchYYRH6a">🍠 待办清单</h1>
+      <p class="counter" id="counter" data-page-node-id="llMblS21oJPcr2pgWrBRrk"></p>
+      <div class="progress" data-page-node-id="ZP2SJlA53CLu9UEzYpAHvt"><div class="bar" id="bar" data-page-node-id="6CE8Ua6MNDvjc6cQL5KlcB"></div></div>
+    </header>
+
+    <div class="composer" id="composer" data-page-node-id="xeLDfVJtZfl0estqVNWURY">
+      <input id="input" type="text" placeholder="今天要做点什么？回车或点「添加」" autocomplete="off" data-page-node-id="3G7EumyUSq61l4ivaOWuNv" />
+      <button class="btn-add" id="addBtn" data-page-node-id="cgA61C7OhABhinxHGQMDFp">添加</button>
+    </div>
+
+    <div class="filters" id="filters" data-page-node-id="hwgX3BtGd1RHY9TZhH09z2">
+      <button data-filter="all" class="active" data-page-node-id="a7UfwToi8A9u8FSwDj8MXq">全部</button>
+      <button data-filter="active" data-page-node-id="tiGCNabY03RsbiyAIZd3QD">未完成</button>
+      <button data-filter="done" data-page-node-id="Okk8RemEIW9giPj1GsJ746">已完成</button>
+    </div>
+
+    <ul class="list" id="list" data-page-node-id="NyROSQXEATIyzMKt6UHt1F"></ul>
+
+    <div class="empty hidden" id="empty" data-page-node-id="El19yBsfqAWGfWwLUEvVHy">
+      <span class="emoji" data-page-node-id="PlitlBRHDoqbXEMrUUL9Ga">🌱</span>
+      <span id="emptyText" data-page-node-id="Q4joudhoLUzTI15EuMRING"></span>
+    </div>
+
+    <footer class="app-footer" data-page-node-id="mteg0Xf8J2FsmZ8GuTSA2e">
+      <span id="summary" data-page-node-id="dtimSSSygQtVoG1EyIVgo6">共 0 条</span>
+      <button class="btn-clear" id="clearDone" disabled data-page-node-id="ufvIqpMriDTZUmd6enZN38">清除已完成</button>
+    </footer>
+  </main>
+
+  <div class="toast" id="toast" data-page-node-id="UiaG1G5aNtQA26COgP41OL"></div>
+  <div class="confetti-layer" id="confettiLayer" data-page-node-id="nHNbYF1oPtRMvLDseT1R7E"></div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    var STORAGE_KEY = 'taro_todo_list_v1';
+
+    var input = document.getElementById('input');
+    var addBtn = document.getElementById('addBtn');
+    var composer = document.getElementById('composer');
+    var list = document.getElementById('list');
+    var empty = document.getElementById('empty');
+    var emptyText = document.getElementById('emptyText');
+    var counter = document.getElementById('counter');
+    var bar = document.getElementById('bar');
+    var summary = document.getElementById('summary');
+    var clearDone = document.getElementById('clearDone');
+    var filtersEl = document.getElementById('filters');
+    var toast = document.getElementById('toast');
+    var confettiLayer = document.getElementById('confettiLayer');
+
+    var todos = [];
+    var filter = 'all';
+    var prevRemaining = null;
+
+    /* ---------- 存取 ---------- */
+    function load() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        var data = JSON.parse(raw);
+        if (!Array.isArray(data)) return [];
+        return data.filter(function (t) {
+          return t && typeof t.text === 'string';
+        }).map(function (t) {
+          return {
+            id: t.id || String(Date.now() + Math.random()),
+            text: t.text,
+            done: !!t.done,
+            createdAt: typeof t.createdAt === 'number' ? t.createdAt : Date.now()
+          };
+        });
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function save() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+      } catch (e) {
+        /* 隐私模式等场景下静默失败，不影响使用 */
+      }
+    }
+
+    /* ---------- 时间格式化 ---------- */
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+    function formatTime(ts) {
+      var d = new Date(ts);
+      var now = new Date();
+      var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      var diffDays = Math.floor((startOfToday - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()) / 86400000);
+      var hm = pad(d.getHours()) + ':' + pad(d.getMinutes());
+
+      if (diffDays === 0) return '今天 ' + hm;
+      if (diffDays === 1) return '昨天 ' + hm;
+      if (d.getFullYear() === now.getFullYear()) return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + hm;
+      return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日';
+    }
+
+    /* ---------- 渲染 ---------- */
+    function visibleTodos() {
+      if (filter === 'active') return todos.filter(function (t) { return !t.done; });
+      if (filter === 'done') return todos.filter(function (t) { return t.done; });
+      return todos;
+    }
+
+    function render(options) {
+      options = options || {};
+      var items = visibleTodos();
+      var remaining = todos.filter(function (t) { return !t.done; }).length;
+      var doneCount = todos.length - remaining;
+
+      list.innerHTML = '';
+
+      items.forEach(function (todo) {
+        list.appendChild(buildItem(todo));
+      });
+
+      /* 空状态 */
+      if (items.length === 0) {
+        empty.classList.remove('hidden');
+        if (todos.length === 0) {
+          emptyText.textContent = '还没有任务，写下第一件小事吧';
+        } else if (filter === 'active') {
+          emptyText.textContent = '未完成的任务已经清空啦，休息一下 🎉';
+        } else {
+          emptyText.textContent = '还没有已完成的任务，先去打几个勾吧';
+        }
+      } else {
+        empty.classList.add('hidden');
+      }
+
+      /* 顶部剩余提示 */
+      if (todos.length === 0) {
+        counter.innerHTML = '写下第一件事，开始今天的清单';
+      } else if (remaining === 0) {
+        counter.innerHTML = '全部完成，太棒啦 <strong>🎉</strong>';
+      } else {
+        counter.innerHTML = '还有 <strong>' + remaining + '</strong> 项待完成';
+      }
+
+      var percent = todos.length === 0 ? 0 : Math.round(doneCount / todos.length * 100);
+      bar.style.width = percent + '%';
+
+      summary.textContent = '共 ' + todos.length + ' 条 · 已完成 ' + doneCount + ' 条';
+      clearDone.disabled = doneCount === 0;
+
+      /* 全部完成 → 庆祝（只在状态发生变化时触发） */
+      if (prevRemaining !== null && prevRemaining > 0 && remaining === 0 && todos.length > 0 && !options.silent) {
+        celebrate();
+      }
+      prevRemaining = remaining;
+    }
+
+    function buildItem(todo) {
+      var li = document.createElement('li');
+      li.className = 'item' + (todo.done ? ' done' : '');
+      li.dataset.id = todo.id;
+
+      var check = document.createElement('button');
+      check.className = 'check';
+      check.type = 'button';
+      check.setAttribute('aria-label', todo.done ? '标记为未完成' : '标记为已完成');
+      check.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="5,13 10,18 19,7"></polyline></svg>';
+      check.addEventListener('click', function () { toggle(todo.id); });
+
+      var body = document.createElement('div');
+      body.className = 'body';
+
+      var text = document.createElement('div');
+      text.className = 'text';
+      text.textContent = todo.text;
+
+      var time = document.createElement('div');
+      time.className = 'time';
+      time.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><polyline points="12,7 12,12 16,14"></polyline></svg>';
+      time.appendChild(document.createTextNode('创建于 ' + formatTime(todo.createdAt)));
+
+      body.appendChild(text);
+      body.appendChild(time);
+
+      var del = document.createElement('button');
+      del.className = 'btn-del';
+      del.type = 'button';
+      del.title = '删除这条任务';
+      del.setAttribute('aria-label', '删除任务');
+      del.textContent = '✕';
+      del.addEventListener('click', function () { remove(todo.id, li); });
+
+      li.appendChild(check);
+      li.appendChild(body);
+      li.appendChild(del);
+      return li;
+    }
+
+    /* ---------- 操作 ---------- */
+    function add() {
+      var value = input.value.trim();
+      if (!value) {
+        composer.classList.remove('shake');
+        void composer.offsetWidth;
+        composer.classList.add('shake');
+        input.focus();
+        return;
+      }
+      todos.unshift({
+        id: String(Date.now()) + Math.random().toString(36).slice(2, 7),
+        text: value,
+        done: false,
+        createdAt: Date.now()
+      });
+      input.value = '';
+      save();
+      if (filter === 'done') filter = 'all';
+      syncFilterButtons();
+      render();
+      input.focus();
+    }
+
+    function toggle(id) {
+      todos = todos.map(function (t) {
+        return t.id === id ? { id: t.id, text: t.text, done: !t.done, createdAt: t.createdAt } : t;
+      });
+      save();
+      render();
+    }
+
+    function remove(id, li) {
+      if (li) li.classList.add('leaving');
+      todos = todos.filter(function (t) { return t.id !== id; });
+      save();
+      setTimeout(function () { render(); }, li ? 200 : 0);
+    }
+
+    function clearCompleted() {
+      var removing = todos.filter(function (t) { return t.done; });
+      if (removing.length === 0) return;
+      if (!window.confirm('确定要清除 ' + removing.length + ' 条已完成的任务吗？')) return;
+
+      removing.forEach(function (t) {
+        var li = list.querySelector('.item[data-id="' + t.id + '"]');
+        if (li) li.classList.add('leaving');
+      });
+
+      todos = todos.filter(function (t) { return !t.done; });
+      save();
+      setTimeout(function () { render(); }, 200);
+    }
+
+    function syncFilterButtons() {
+      var buttons = filtersEl.querySelectorAll('button');
+      Array.prototype.forEach.call(buttons, function (b) {
+        b.classList.toggle('active', b.dataset.filter === filter);
+      });
+    }
+
+    /* ---------- 庆祝 ---------- */
+    function celebrate() {
+      toast.textContent = '🎉 全部完成！今天真棒';
+      toast.classList.add('show');
+      setTimeout(function () { toast.classList.remove('show'); }, 2600);
+
+      var pieces = ['🎉', '✨', '💜', '🍠', '⭐', '🎊'];
+      for (var i = 0; i < 26; i++) {
+        (function (i) {
+          var span = document.createElement('span');
+          span.className = 'confetti-piece';
+          span.textContent = pieces[Math.floor(Math.random() * pieces.length)];
+          span.style.left = Math.random() * 100 + 'vw';
+          span.style.fontSize = (14 + Math.random() * 14) + 'px';
+          span.style.animationDuration = (2 + Math.random() * 1.6) + 's';
+          span.style.animationDelay = (Math.random() * 0.6) + 's';
+          confettiLayer.appendChild(span);
+          setTimeout(function () {
+            if (span.parentNode) span.parentNode.removeChild(span);
+          }, 4600);
+        })(i);
+      }
+    }
+
+    /* ---------- 事件 ---------- */
+    addBtn.addEventListener('click', add);
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') add();
+    });
+
+    filtersEl.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn || !btn.dataset.filter) return;
+      filter = btn.dataset.filter;
+      syncFilterButtons();
+      render();
+    });
+
+    clearDone.addEventListener('click', clearCompleted);
+
+    /* ---------- 启动 ---------- */
+    todos = load();
+    prevRemaining = todos.filter(function (t) { return !t.done; }).length;
+    render({ silent: true });
+  })();
+  </script>
+</body>
+</html>
